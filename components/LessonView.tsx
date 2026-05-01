@@ -40,7 +40,7 @@ async function parsePdf(file: File): Promise<string> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item: any) => item.str).join(" "));
+    pages.push(content.items.map((item) => (item as { str?: string }).str ?? "").join(" "));
   }
   return pages.join("\n\n");
 }
@@ -63,7 +63,7 @@ function formatMessage(text: string): string {
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
     .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>")
+    .replace(/(<li>[\s\S]*?<\/li>)/g, "<ul>$1</ul>")
     .replace(/\n\n/g, "</p><p>")
     .replace(/^(?!<[hul])(.+)/gm, "$1")
     .split("\n")
@@ -132,7 +132,7 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
         };
         addDoc(lessonId, doc);
         refresh();
-      } catch (err) {
+      } catch {
         setUploadError(`Failed to parse ${file.name}`);
       }
     }
@@ -222,8 +222,9 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
 
       updateLastAssistantMessage(lessonId, accumulated);
       refresh();
-    } catch (err: any) {
-      updateLastAssistantMessage(lessonId, `⚠️ Error: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      updateLastAssistantMessage(lessonId, `⚠️ Error: ${errorMsg}`);
       refresh();
     } finally {
       setIsStreaming(false);
@@ -479,7 +480,7 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
             }
             rows={1}
             className="flex-1 bg-transparent text-[#f0f2f5] placeholder:text-[#5a5f6e] text-sm resize-none focus:outline-none max-h-32 leading-relaxed"
-            style={{ fieldSizing: "content" } as any}
+            style={{ fieldSizing: "content" } as unknown as React.CSSProperties}
           />
           <button
             id="send-btn"

@@ -78,10 +78,10 @@ ${docContent}`;
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
-        } catch (err: any) {
+        } catch (err: unknown) {
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ error: err.message })}\n\n`
+              `data: ${JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" })}\n\n`
             )
           );
           controller.close();
@@ -96,9 +96,9 @@ ${docContent}`;
         Connection: "keep-alive",
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message ?? "Internal server error" },
+      { error: err instanceof Error ? err.message : "Internal server error" },
       { status: 500 }
     );
   }

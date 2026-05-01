@@ -1,0 +1,108 @@
+# StudyBrain — App Review & Improvement Roadmap
+
+## Current State ✅
+The core loop works well: create lesson → upload docs → stream AI chat → persist to localStorage.
+Fonts, dark theme, mobile layout, and PDF parsing are all solid.
+
+---
+
+## 🔴 Bugs / Critical Gaps
+
+| # | Issue | Impact |
+|---|---|---|
+| 1 | **No Stop button** — once streaming starts, you can't cancel it | High |
+| 2 | **localStorage ~5 MB limit** — large PDFs will silently fail or corrupt the store | High |
+| 3 | **Lesson can't be renamed** — only create/delete, no edit | Medium |
+| 4 | **No error retry** — if the AI call fails, the empty bubble just sits there with no way to retry | Medium |
+| 5 | **Copy button missing** — can't copy an AI response to clipboard | Medium |
+
+---
+
+## 🟡 High-Value Features to Add
+
+### 1. ⏹ Stop / Abort Streaming *(effort: small)*
+Add a **Stop** button that replaces the Send button while the AI is typing.
+Use `AbortController` to cancel the fetch mid-stream.
+
+### 2. 📋 Copy Message Button *(effort: small)*
+On hover/tap of any AI message, show a copy icon.
+`navigator.clipboard.writeText(msg.content)` with a brief "Copied!" toast.
+
+### 3. ✏️ Rename Lesson *(effort: small)*
+Double-click or pencil icon on the lesson name → inline edit → Enter to save.
+
+### 4. 🗑️ Clear Chat History *(effort: small)*
+Button in the topbar (trash icon) to wipe just the chat, keeping docs intact.
+Useful for starting a fresh conversation on the same material.
+
+### 5. 🔍 Lesson Search in Sidebar *(effort: small)*
+A tiny search input at the top of the sidebar to filter lessons by name.
+Essential once you have 10+ lessons.
+
+### 6. 🧠 AI Model Selector *(effort: medium)*
+Dropdown in the lesson topbar to swap between models on OpenRouter:
+- `anthropic/claude-sonnet-4-5` (current)
+- `google/gemini-2.5-pro`
+- `openai/gpt-4o`
+- `meta-llama/llama-3.3-70b-instruct` (free)
+
+Stored per-lesson in localStorage.
+
+### 7. 📤 Export Chat as Markdown *(effort: small)*
+"Export" button that downloads the chat history as a `.md` file.
+Extremely useful for students who want to save notes.
+
+### 8. 🃏 Flashcard Mode *(effort: medium)*
+A "Flashcard" tab inside each lesson.
+Sends a structured prompt to generate `[Term] → [Definition]` pairs from docs.
+Renders them as flip cards with keyboard navigation (← →, Space to flip).
+
+### 9. 📊 Doc Preview Drawer *(effort: medium)*
+Clicking a doc chip opens a side drawer showing the raw extracted text.
+Helps users verify the parsed content is correct (especially for PDFs).
+
+### 10. 🏷️ Lesson Color Labels *(effort: tiny)*
+Color dot picker on each lesson (6 preset colors).
+Makes it easier to visually organize subjects in the sidebar.
+
+---
+
+## 🟢 Polish & UX Details
+
+| # | Improvement | Effort |
+|---|---|---|
+| A | **Toast notifications** — "Doc added ✓", "Lesson deleted" feedback | tiny |
+| B | **Relative timestamps** on messages — "2 min ago" shown on hover | tiny |
+| C | **Keyboard shortcut** — `Ctrl+K` opens New Lesson modal | tiny |
+| D | **Drag & drop reorder** lessons in the sidebar | medium |
+| E | **Animated sidebar toggle** width (expand/collapse to icon-only mode) | medium |
+| F | **Character counter** on input — shows how close you are to max tokens | small |
+| G | **Auto-scroll toggle** — pin/unpin scroll-to-bottom behavior | small |
+
+---
+
+## ⚠️ Technical Risks
+
+### localStorage Size Limit (~5 MB)
+Large PDFs (e.g. 200-page textbooks) will exceed the browser's storage quota.
+**Fix:** Truncate doc content to 50k characters on upload, or switch to IndexedDB.
+
+### No API Key Validation
+If the key is wrong/missing, the AI returns an error but the empty bubble lingers.
+**Fix:** Validate on first send and show a clear "Check your API key" banner.
+
+### PDF Worker CDN Dependency  
+The pdfjs worker loads from `unpkg.com` — fails if offline.
+**Fix:** Bundle the worker locally via `next.config.mjs`.
+
+---
+
+## 📋 Recommended Build Order
+
+```
+Priority 1 (do now):   Stop button, Copy button, Rename lesson, Clear chat
+Priority 2 (next):     Toast notifications, Lesson search, Export markdown
+Priority 3 (v2):       Flashcard mode, Model selector, Doc preview drawer
+```
+
+> Which ones would you like me to implement?

@@ -1,0 +1,37 @@
+# StudyBrain — Full-Stack AI Knowledge Base App
+
+Building a Next.js 14 App Router application with Tailwind CSS, shadcn/ui, Anthropic Claude AI, and localStorage persistence.
+
+## Build Order
+
+### Phase 1 — Scaffold
+- Initialize Next.js 14 project in `d:\2brain\studybrain`
+- Install all dependencies
+
+### Phase 2 — Config
+- `tailwind.config.ts` with custom tokens (Syne, DM Mono, lime-green accent)
+- `app/globals.css`
+- `.env.local`
+
+### Phase 3 — Core Files
+1. `app/layout.tsx` — Dark root layout with sidebar + main slots
+2. `lib/store.ts` — localStorage helpers
+3. `lib/types.ts` — TypeScript types
+
+### Phase 4 — Components
+4. `components/Sidebar.tsx`
+5. `components/NewLessonModal.tsx`
+6. `components/LessonView.tsx`
+7. `components/WelcomeScreen.tsx`
+
+### Phase 5 — API Route
+8. `app/api/chat/route.ts` — Streaming Anthropic Claude endpoint
+
+### Phase 6 — Main Page
+9. `app/page.tsx` — Orchestrates sidebar + view states
+
+## Verification
+- Dev server starts without errors
+- Can create/delete lessons
+- File upload + parsing works
+- Chat streams AI responses

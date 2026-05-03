@@ -1,14 +1,25 @@
 import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-  defaultHeaders: {
-    "HTTP-Referer": "https://studybrain.app",
-    "X-Title": "StudyBrain",
-  },
-});
+let cachedClient: OpenAI | null = null;
+
+function getClient() {
+  if (!cachedClient) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error("Missing OPENROUTER_API_KEY");
+    }
+    cachedClient = new OpenAI({
+      apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": "https://studybrain.app",
+        "X-Title": "StudyBrain",
+      },
+    });
+  }
+  return cachedClient;
+}
 
 // OpenRouter model ID for Claude Sonnet 4
 const MODEL = "anthropic/claude-sonnet-4-5";
@@ -61,6 +72,7 @@ ${docContent}`;
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const client = getClient();
           const completion = await client.chat.completions.create({
             model: MODEL,
             max_tokens: 2048,

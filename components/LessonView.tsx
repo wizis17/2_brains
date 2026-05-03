@@ -195,29 +195,62 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
         throw new Error(err);
       }
 
-      const reader = res.body!.getReader();
+      const reader = res.body?.getReader();
+      if (!reader) {
+        throw new Error("Empty response stream");
+      }
       const decoder = new TextDecoder();
       let accumulated = "";
+      let buffer = "";
+      let receivedDone = false;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        // SSE: parse "data: ..." lines
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.text) {
-                accumulated += parsed.text;
-                setStreamContent(accumulated);
-              }
-            } catch {}
+        if (done) {
+          buffer += decoder.decode();
+        } else {
+          buffer += decoder.decode(value, { stream: true });
+        }
+
+        // Parse SSE events by event boundary (\n\n), preserving partial chunks.
+        while (true) {
+          const eventEnd = buffer.indexOf("\n\n");
+          if (eventEnd === -1) break;
+
+          const rawEvent = buffer.slice(0, eventEnd);
+          buffer = buffer.slice(eventEnd + 2);
+
+          const data = rawEvent
+            .split("\n")
+            .filter((line) => line.startsWith("data:"))
+            .map((line) => line.slice(5).trimStart())
+            .join("\n")
+            .trim();
+
+          if (!data) continue;
+          if (data === "[DONE]") {
+            receivedDone = true;
+            break;
+          }
+
+          let parsed: { text?: string; error?: string };
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            continue;
+          }
+
+          if (parsed.error) {
+            throw new Error(parsed.error);
+          }
+
+          if (parsed.text) {
+            accumulated += parsed.text;
+            setStreamContent(accumulated);
           }
         }
+
+        if (receivedDone || done) break;
       }
 
       updateLastAssistantMessage(lessonId, accumulated);

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Trash2, Plus, Brain, FileText, X } from "lucide-react";
+import { BookOpen, Trash2, Plus, Brain, FileText, X, Settings } from "lucide-react";
 import { Lesson } from "@/lib/types";
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onNewLesson: () => void;
+  onHome: () => void;
+  onSettings: () => void;
   onClose?: () => void;
 }
 
@@ -18,13 +20,18 @@ export default function Sidebar({
   onSelect,
   onDelete,
   onNewLesson,
+  onHome,
+  onSettings,
   onClose,
 }: Props) {
   return (
     <aside className="flex flex-col w-[260px] min-w-[260px] h-full bg-[#0e0f11] border-r border-[#2a2d35]">
       {/* Logo + mobile close */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-[#2a2d35]">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={onHome}
+          className="flex items-center gap-3 hover:opacity-80 active:scale-95 transition-all"
+        >
           <div className="w-8 h-8 rounded-lg bg-[#c8f565] flex items-center justify-center flex-shrink-0">
             <Brain size={17} className="text-[#0e0f11]" strokeWidth={2.5} />
           </div>
@@ -32,7 +39,7 @@ export default function Sidebar({
             <span className="font-bold text-[#f0f2f5] text-sm tracking-wide">Study</span>
             <span className="font-bold text-[#c8f565] text-sm tracking-wide">Brain</span>
           </div>
-        </div>
+        </button>
         {/* Close button — mobile only */}
         {onClose && (
           <button
@@ -107,12 +114,19 @@ export default function Sidebar({
         })}
       </div>
 
-      {/* New Lesson button */}
-      <div className="p-3 border-t border-[#2a2d35]">
+      {/* Bottom actions */}
+      <div className="p-3 border-t border-[#2a2d35] flex gap-2">
+        <button
+          onClick={onSettings}
+          title="Settings"
+          className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#2a2d35] text-[#8a8f9e] hover:text-[#c8f565] hover:border-[#c8f565]/30 hover:bg-[#c8f565]/5 active:scale-95 transition-all flex-shrink-0"
+        >
+          <Settings size={16} />
+        </button>
         <button
           id="new-lesson-btn"
           onClick={onNewLesson}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#c8f565] text-[#0e0f11] text-sm font-bold hover:bg-[#a8d94a] active:scale-95 transition-all shadow-lg shadow-[#c8f565]/10"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#c8f565] text-[#0e0f11] text-sm font-bold hover:bg-[#a8d94a] active:scale-95 transition-all shadow-lg shadow-[#c8f565]/10"
         >
           <Plus size={16} strokeWidth={2.5} />
           New Lesson

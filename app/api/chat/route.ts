@@ -1,32 +1,19 @@
-import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-let cachedClient: OpenAI | null = null;
-
-function getClient() {
-  if (!cachedClient) {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing OPENROUTER_API_KEY");
-    }
-    cachedClient = new OpenAI({
-      apiKey,
-      baseURL: "https://openrouter.ai/api/v1",
-      defaultHeaders: {
-        "HTTP-Referer": "https://studybrain.app",
-        "X-Title": "StudyBrain",
-      },
-    });
+function getApiKey(clientKey?: string): string {
+  const key = clientKey?.trim() || process.env.NVIDIA_NIM_API_KEY;
+  if (!key) {
+    throw new Error("No API key configured — add one in Settings");
   }
-  return cachedClient;
+  return key;
 }
 
-// OpenRouter model ID for Claude Sonnet 4
-const MODEL = "anthropic/claude-sonnet-4-5";
+const MODEL = "meta/llama-3.1-8b-instruct";
+const NIM_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
 
 export async function POST(req: NextRequest) {
   try {
-    const { lessonName, question, docs, history } = await req.json();
+    const { lessonName, question, docs, history, apiKey: clientKey } = await req.json();
 
     if (!question || !docs || docs.length === 0) {
       return NextResponse.json(
@@ -35,7 +22,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build doc content string
     const docContent = docs
       .map(
         (doc: { name: string; content: string }) =>
@@ -53,38 +39,87 @@ Format your responses with markdown when it helps clarity (bullet points, bold k
 DOCUMENTS:
 ${docContent}`;
 
-    // Build message history (last 20 exchanges)
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    const trimmedHistory = (history ?? []).slice(-20);
+    const messages: { role: string; content: string }[] = [
       { role: "system", content: systemPrompt },
+      ...trimmedHistory
+        .filter((msg: { role: string; content: string }) =>
+          msg.role === "user" || msg.role === "assistant"
+        )
+        .map((msg: { role: string; content: string }) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+      { role: "user", content: question },
     ];
 
-    const trimmedHistory = (history ?? []).slice(-20);
-    for (const msg of trimmedHistory) {
-      if (msg.role === "user" || msg.role === "assistant") {
-        messages.push({ role: msg.role, content: msg.content });
-      }
-    }
-    messages.push({ role: "user", content: question });
-
-    // Stream response via SSE
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const client = getClient();
-          const completion = await client.chat.completions.create({
-            model: MODEL,
-            max_tokens: 2048,
-            messages,
-            stream: true,
+          const apiKey = getApiKey(clientKey);
+          const response = await fetch(NIM_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: MODEL,
+              messages,
+              max_tokens: 2048,
+              stream: true,
+            }),
           });
 
-          for await (const chunk of completion) {
-            const text = chunk.choices[0]?.delta?.content ?? "";
-            if (text) {
-              const data = JSON.stringify({ text });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `NVIDIA NIM API error ${response.status}: ${errorText || response.statusText}`
+            );
+          }
+
+          if (!response.body) {
+            throw new Error("NVIDIA NIM API response has no body");
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data:")) continue;
+
+              const payload = trimmed.slice("data:".length).trim();
+              if (payload === "[DONE]") {
+                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                controller.close();
+                return;
+              }
+
+              let parsed: any;
+              try {
+                parsed = JSON.parse(payload);
+              } catch {
+                continue;
+              }
+
+              const text = parsed?.choices?.[0]?.delta?.content ?? "";
+              if (text) {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+                );
+              }
             }
           }
 

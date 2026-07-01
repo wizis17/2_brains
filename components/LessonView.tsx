@@ -29,6 +29,7 @@ import {
   updateLastAssistantMessage,
   getLesson,
 } from "@/lib/store";
+import { NIM_KEY_STORAGE } from "@/components/SettingsView";
 
 /* ── PDF parser (lazy) ─────────────────────────────────────────────── */
 async function parsePdf(file: File): Promise<string> {
@@ -178,6 +179,8 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
       const freshLesson = getLesson(lessonId)!;
       const history = freshLesson.chat.slice(-22, -2); // last 20 before new pair
 
+      const storedKey = localStorage.getItem(NIM_KEY_STORAGE) ?? undefined;
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,6 +190,7 @@ export default function LessonView({ lessonId, onMenuOpen }: Props) {
           question,
           docs: freshLesson.docs,
           history,
+          apiKey: storedKey,
         }),
       });
 

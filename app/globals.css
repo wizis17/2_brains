@@ -63,6 +63,32 @@ body {
   color: #c8f565;
 }
 
+/* Background dot grid pattern */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, rgba(200, 245, 101, 0.13) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Floating orb animations */
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(18px, -24px) scale(1.06); }
+  66%       { transform: translate(-12px, 14px) scale(0.95); }
+}
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-20px, 18px) scale(1.08); }
+  80%       { transform: translate(14px, -10px) scale(0.93); }
+}
+@keyframes orb-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(10px, 22px) scale(1.04); }
+}
+
+.animate-orb-a { animation: orb-drift-a 12s ease-in-out infinite; }
+.animate-orb-b { animation: orb-drift-b  9s ease-in-out infinite; }
+.animate-orb-c { animation: orb-drift-c 15s ease-in-out infinite; }
+
 /* Thinking dots animation */
 .thinking-dot {
   display: inline-block;
